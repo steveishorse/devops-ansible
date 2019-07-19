@@ -1,5 +1,78 @@
 ---
-- hosts: all
+# Apologies for not showing work, I actually did this on a different computer after downloading the zip file from github
+# My background is puppet and later Chef -- we have choosen to use Ansible on the program I am currently on but I have not yet had the chance to really utilize yet -- so the solution below represents about an hour of trial and error with access to google -- obviously that is about 55 minutes longer than this should take someone competent and there are certainly cleaner ways to execute this assignment that will come with more experience :)
+#
+- name: My first Ansible Yay!
+  hosts: all
   tasks:
-    - debug:
-        msg: Hello, world
+
+     - debug:
+         msg: Hello, world
+
+     - name: install basic packages
+       become: yes 
+       action: >
+         {{ ansible_pkg_mgr }} name={{ item }} state=present update_cache=yes
+       with_items:
+         - docker 
+     
+     - name: copy myapp
+       become: yes
+       copy: 
+         src: ./myapp.service
+         dest: /etc/systemd/system/myapp.service
+         owner: root
+
+     - name: enable the myapp service and start it 
+       become: yes
+       systemd: 
+         name: myapp
+         enabled: yes
+         masked: no
+         state: started
+
+     - name: Ensure docker deamon is running
+       become: true
+       service:
+         name: docker
+         state: started
+
+     - name: make a directory 
+       file:
+         path:  /tmp/build_app
+         state: directory
+
+     - name: recursive copy this directory
+       copy:
+         src: /vagrant/app
+         dest: /tmp/build_app
+     
+     - name: set facts
+       set_fact:
+         APP_MESSAGE: "HELLO WORLD"
+     
+     - name: replace app variable
+       replace: 
+         path: /tmp/build_app/app/main.py
+         regexp: "APP_MESSAGE"
+         replace: "{{ APP_MESSAGE }}"
+         backup: yes
+
+     - debug: msg= "the value of main.py is {{lookup('file', '//tmp/build_app/app/main.py') }}"
+
+     - name: copy Dockerfile 
+       become: yes
+       copy:
+         src: app/Dockerfile 
+         dest: /tmp/build_app 
+         owner: root
+
+     - name: go to folder and run a command
+       become: yes
+       command: bash -lc "cd /tmp/build_app/app && docker build -t myapp ."
+
+     - name: enable the myapp service and start it
+       become: yes
+       systemd:
+         name: myapp
+         state: started
