@@ -23,13 +23,12 @@
          dest: /etc/systemd/system/myapp.service
          owner: root
 
-     - name: enable the myapp service and start it 
+     - name: enable the myapp service  
        become: yes
        systemd: 
          name: myapp
          enabled: yes
          masked: no
-         state: started
 
      - name: Ensure docker deamon is running
        become: true
